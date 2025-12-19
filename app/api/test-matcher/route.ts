@@ -1,9 +1,7 @@
 // app/api/test-matcher/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import {
-  matchEmailLinesToImages,
-  ImageFile,
-} from "../../../lib/emailMatcher";
+import { matchEmailLinesToImages } from "../../../lib/emailMatcher";
+import type { ImageFile } from "../../../lib/emailMatcher";
 
 export async function POST(req: NextRequest) {
   try {
