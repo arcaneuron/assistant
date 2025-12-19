@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
-import {
-  matchEmailLinesToImages,
-  ImageFile,
-  MatchResult,
-} from "../../../lib/emailMatcher";
+import { matchEmailLinesToImages } from "../../../lib/emailMatcher";
+import type { ImageFile, MatchResult } from "../../../lib/emailMatcher";
 import { extractDocId } from "../../../lib/googleDocs";
+
 
 const BOX_API_BASE = "https://api.box.com/2.0";
 const BOX_DEV_TOKEN = process.env.BOX_DEV_TOKEN;
