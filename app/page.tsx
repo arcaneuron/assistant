@@ -197,176 +197,205 @@ Email Comp: EOY FINAL STRETCH 12/31 8a MAJOR
     }
   };
 
-  return (
-    <main className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black text-zinc-100">
-      <div className="mx-auto max-w-5xl px-4 py-8 md:py-10">
-        {/* Header */}
-        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1 text-xs font-medium text-zinc-300">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              PM Twin · Email → Image Linker
-            </div>
-            <h1 className="mt-4 text-2xl md:text-3xl font-semibold tracking-tight">
-              Email → Image Matcher Dev Console
-            </h1>
-            <p className="mt-2 text-sm text-zinc-400 max-w-xl">
-              Paste a Google Doc and a Box folder. The app finds the right image
-              for each <code className="rounded bg-zinc-800 px-1">Email Comp</code>{" "}
-              line and can auto-link them back into the doc.
-            </p>
-          </div>
-        </header>
+  const hasDoc = !!docText.trim();
+  const hasBox = !!imageText.trim();
+  const hasResults = results.length > 0;
 
-        {/* Error banner */}
+  return (
+    <main className="app-shell">
+      {/* Top bar */}
+      <header className="app-header">
+        <div className="app-header-inner">
+          <div className="app-brand">
+            <div className="app-logo">PM</div>
+            <div className="app-title">
+              <span className="app-title-main">
+                PM Twin · Email → Image Linker
+              </span>
+              <span className="app-title-sub">
+                Auto-link Box images into your Google Doc email comps.
+              </span>
+            </div>
+          </div>
+
+          <div className="app-status-row">
+            <div
+              className={
+                "status-chip " + (hasDoc ? "status-chip--green" : "")
+              }
+            >
+              Doc&nbsp;
+              <span>{hasDoc ? "READY" : "PENDING"}</span>
+            </div>
+            <div
+              className={
+                "status-chip " + (hasBox ? "status-chip--blue" : "")
+              }
+            >
+              Box&nbsp;
+              <span>{hasBox ? "READY" : "PENDING"}</span>
+            </div>
+            <div
+              className={
+                "status-chip " + (hasResults ? "status-chip--violet" : "")
+              }
+            >
+              Matches&nbsp;
+              <span>{hasResults ? "OK" : "WAIT"}</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="app-body">
+        {/* Intro */}
+        <section className="intro">
+          <p>
+            Paste a Google Doc and a Box folder. PM Twin will read the email
+            comps, match each <code>Email Comp</code> line to the correct image
+            filename, and can push hyperlinks back into the Google Doc for you.
+          </p>
+        </section>
+
+        {/* Error */}
         {error && (
-          <div className="mt-4 rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
-            <span className="font-semibold">Error:</span> {error}
+          <div className="error-banner">
+            <strong>Error:</strong> {error}
           </div>
         )}
 
         {/* Main grid */}
-        <section className="mt-6 grid gap-6 md:grid-cols-2">
-          {/* Left column: sources + doc text */}
-          <div className="space-y-4">
-            <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 shadow-sm">
-              <h2 className="text-sm font-semibold text-zinc-200 mb-3">
-                1 · Google Doc
-              </h2>
-              <label className="text-xs font-medium text-zinc-300">
-                Google Doc URL or ID
-                <input
-                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs outline-none ring-0 focus:border-sky-400"
-                  placeholder="https://docs.google.com/document/d/..."
-                  value={docUrlOrId}
-                  onChange={(e) => setDocUrlOrId(e.target.value)}
-                />
-              </label>
+        <section className="layout-grid">
+          {/* Left column: Google Doc */}
+          <div className="card">
+            <h2>
+              <span>1 · Google Doc</span>
+            </h2>
 
+            <div className="field">
+              <label className="field-label">Google Doc URL or ID</label>
+              <input
+                className="input"
+                placeholder="https://docs.google.com/document/d/..."
+                value={docUrlOrId}
+                onChange={(e) => setDocUrlOrId(e.target.value)}
+              />
+            </div>
+
+            <div className="button-row">
               <button
                 onClick={loadFromGoogleDoc}
                 disabled={docLoading || !docUrlOrId.trim()}
-                className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-sky-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn btn-primary"
               >
-                {docLoading ? "Loading from Google Docs..." : "Load doc text"}
+                {docLoading
+                  ? "Loading from Google Docs…"
+                  : "Load doc text"}
               </button>
+            </div>
 
-              <label className="mt-4 block text-xs font-medium text-zinc-300">
+            <div className="field">
+              <label className="field-label">
                 Document text (editable preview)
-                <textarea
-                  className="mt-1 h-64 w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs outline-none ring-0 focus:border-emerald-400"
-                  value={docText}
-                  onChange={(e) => setDocText(e.target.value)}
-                />
               </label>
+              <textarea
+                className="textarea"
+                value={docText}
+                onChange={(e) => setDocText(e.target.value)}
+              />
             </div>
           </div>
 
-          {/* Right column: Box + image names + run matcher */}
-          <div className="space-y-4">
-            <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 shadow-sm">
-              <h2 className="text-sm font-semibold text-zinc-200 mb-3">
-                2 · Box folder & images
-              </h2>
+          {/* Right column: Box */}
+          <div className="card">
+            <h2>
+              <span>2 · Box folder & images</span>
+            </h2>
 
-              <label className="text-xs font-medium text-zinc-300">
-                Box folder ID
-                <input
-                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs outline-none ring-0 focus:border-sky-400"
-                  placeholder="e.g. 123456789"
-                  value={boxFolderId}
-                  onChange={(e) => setBoxFolderId(e.target.value)}
-                />
-              </label>
+            <div className="field">
+              <label className="field-label">Box folder ID</label>
+              <input
+                className="input"
+                placeholder="e.g. 123456789"
+                value={boxFolderId}
+                onChange={(e) => setBoxFolderId(e.target.value)}
+              />
+            </div>
 
+            <div className="button-row">
               <button
                 onClick={loadImagesFromBox}
                 disabled={boxLoading || !boxFolderId.trim()}
-                className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-sky-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn btn-secondary"
               >
                 {boxLoading
-                  ? "Loading image filenames from Box..."
+                  ? "Loading image filenames from Box…"
                   : "Load image filenames from Box"}
               </button>
+            </div>
 
-              <label className="mt-4 block text-xs font-medium text-zinc-300">
-                Image filenames (editable)
-                <textarea
-                  className="mt-1 h-40 w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs outline-none ring-0 focus:border-emerald-400"
-                  value={imageText}
-                  onChange={(e) => setImageText(e.target.value)}
-                />
-              </label>
+            <div className="field">
+              <label className="field-label">Image filenames (editable)</label>
+              <textarea
+                className="textarea"
+                value={imageText}
+                onChange={(e) => setImageText(e.target.value)}
+              />
+            </div>
 
+            <div className="button-row">
               <button
                 onClick={runMatcher}
                 disabled={loading}
-                className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn btn-primary"
               >
-                {loading ? "Running matcher..." : "Run matcher"}
+                {loading ? "Running matcher…" : "Run matcher"}
               </button>
             </div>
           </div>
         </section>
 
         {/* Results + apply */}
-        <section className="mt-6 space-y-4">
-          <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-zinc-200">
-                3 · Matcher results
-              </h2>
-              <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
+        <section className="results-section">
+          <div className="results-card">
+            <div className="results-header">
+              <div className="results-title">3 · Matcher results</div>
+              <div className="results-pill">
                 {results.length === 0
                   ? "No results yet"
                   : `${results.length} line(s) processed`}
-              </span>
+              </div>
             </div>
 
             {results.length === 0 ? (
-              <p className="mt-2 text-xs text-zinc-400">
-                Run the matcher to see which{" "}
-                <code className="rounded bg-zinc-800 px-1">Email Comp</code>{" "}
-                lines match which filenames.
+              <p className="results-empty">
+                Run the matcher to see which <code>Email Comp</code> lines match
+                which filenames.
               </p>
             ) : (
-              <ul className="mt-3 space-y-3 text-xs">
+              <ul className="results-list">
                 {results.map((r, idx) => (
-                  <li
-                    key={idx}
-                    className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2"
-                  >
-                    <div className="font-mono text-[11px] text-zinc-400">
+                  <li key={idx} className="result-item">
+                    <div className="result-line">
                       {r.line.originalLine}
                     </div>
 
                     {r.type === "single" && r.image && (
-                      <div className="mt-1">
-                        <span className="font-semibold text-emerald-400">
-                          ✅ Single match:
-                        </span>{" "}
-                        {r.image.name}
-                        {r.image.url && (
-                          <span className="text-[10px] text-zinc-500">
-                            {" "}
-                            ({r.image.url})
-                          </span>
-                        )}
+                      <div className="result-success">
+                        <span>✅ Single match:</span> {r.image.name}
                       </div>
                     )}
 
                     {r.type === "none" && (
-                      <div className="mt-1 text-red-400">
+                      <div className="result-error">
                         ❌ No image match found for this line.
                       </div>
                     )}
 
                     {r.type === "multiple" && r.images && (
-                      <div className="mt-1">
-                        <span className="font-semibold text-yellow-300">
-                          ⚠ Multiple possible matches:
-                        </span>
-                        <ul className="mt-1 list-inside list-disc text-[11px] text-zinc-300">
+                      <div className="result-multi">
+                        ⚠ Multiple possible matches:
+                        <ul>
                           {r.images.map((img, i) => (
                             <li key={i}>{img.name}</li>
                           ))}
@@ -379,21 +408,21 @@ Email Comp: EOY FINAL STRETCH 12/31 8a MAJOR
             )}
           </div>
 
-          <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          <div className="apply-row">
             <button
               onClick={applyLinksToDoc}
               disabled={
                 applyLoading || !docUrlOrId.trim() || !boxFolderId.trim()
               }
-              className="inline-flex w-full items-center justify-center rounded-md bg-purple-500 px-4 py-2 text-xs font-medium text-white hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50 md:w-auto"
+              className="btn btn-primary"
             >
               {applyLoading
-                ? "Applying links to Google Doc..."
+                ? "Applying links to Google Doc…"
                 : "Apply links to Google Doc"}
             </button>
 
             {applyMessage && (
-              <p className="text-xs text-emerald-300">{applyMessage}</p>
+              <p className="apply-message">{applyMessage}</p>
             )}
           </div>
         </section>
