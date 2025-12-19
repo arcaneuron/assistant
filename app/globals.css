@@ -1,43 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   color-scheme: dark;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
 body {
-  padding: 0;
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  background-color: #000000;
-  color: #ffffff;
+  background-color: #000;
+  color: #fff;
 }
 
-body {
-  min-height: 100vh;
-}
-
-/* Make main content full height flex column */
-main {
-  min-height: 100vh;
-}
-
-/* Scrollbar tweak for the dev console vibe */
 textarea {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
-}
-
-/* Links (just in case) */
-a {
-  color: #38bdf8;
-}
-a:hover {
-  text-decoration: underline;
 }
