@@ -58,6 +58,11 @@ Email Comp: EOY FINAL STRETCH 12/31 8a MAJOR
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyMessage, setApplyMessage] = useState<string | null>(null);
 
+  // 🔹 NEW: AI hints state, indexed by result index
+  const [aiHints, setAiHints] = useState<
+    Record<number, { choice?: string; reason?: string; loading?: boolean; error?: string }>
+  >({});
+
   const applyLinksToDoc = async () => {
     if (!docUrlOrId.trim() || !boxFolderId.trim()) {
       setError("Please enter both a Google Doc URL/ID and a Box folder ID.");
@@ -166,6 +171,7 @@ Email Comp: EOY FINAL STRETCH 12/31 8a MAJOR
     setLoading(true);
     setError(null);
     setResults([]);
+    setAiHints({}); // reset AI hints when re-running
 
     try {
       const filenames = imageText
@@ -194,6 +200,56 @@ Email Comp: EOY FINAL STRETCH 12/31 8a MAJOR
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 🔹 NEW: call AI helper for a specific multiple-match result
+  const askAiForResult = async (idx: number) => {
+    const r = results[idx];
+    if (!r) return;
+    if (r.type !== "multiple" || !r.images || r.images.length === 0) return;
+
+    const lineText = r.line.originalLine;
+    const contextLine = (r.line as any).contextLine || "";
+
+    setAiHints((prev) => ({
+      ...prev,
+      [idx]: { ...prev[idx], loading: true, error: undefined },
+    }));
+
+    try {
+      const res = await fetch("/api/ai-helper", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lineText,
+          contextLine,
+          candidates: r.images.map((img) => ({ name: img.name })),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "AI helper failed");
+      }
+
+      setAiHints((prev) => ({
+        ...prev,
+        [idx]: {
+          loading: false,
+          choice: data.choice,
+          reason: data.reason || undefined,
+        },
+      }));
+    } catch (err: any) {
+      setAiHints((prev) => ({
+        ...prev,
+        [idx]: {
+          loading: false,
+          error: err.message || "Error calling AI helper",
+        },
+      }));
     }
   };
 
@@ -400,6 +456,48 @@ Email Comp: EOY FINAL STRETCH 12/31 8a MAJOR
                             <li key={i}>{img.name}</li>
                           ))}
                         </ul>
+
+                        {/* 🔹 AI helper UI for ambiguous lines */}
+                        <div className="apply-row" style={{ marginTop: 8 }}>
+                          <button
+                            onClick={() => askAiForResult(idx)}
+                            className="btn btn-secondary"
+                            disabled={aiHints[idx]?.loading}
+                          >
+                            {aiHints[idx]?.loading
+                              ? "Asking AI..."
+                              : "Ask AI to choose best"}
+                          </button>
+
+                          {aiHints[idx]?.choice && (
+                            <div className="apply-message">
+                              <strong>AI suggestion:</strong>{" "}
+                              {aiHints[idx].choice}
+                              {aiHints[idx].reason && (
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    color: "#4b5563",
+                                    marginTop: 2,
+                                  }}
+                                >
+                                  {aiHints[idx].reason}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {aiHints[idx]?.error && (
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: "#b91c1c",
+                              }}
+                            >
+                              AI error: {aiHints[idx].error}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </li>
