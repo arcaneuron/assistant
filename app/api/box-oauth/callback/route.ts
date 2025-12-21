@@ -21,16 +21,23 @@ export async function GET(req: NextRequest) {
   const errorDesc = url.searchParams.get("error_description");
 
   if (error) {
-    return NextResponse.text(
+    return new NextResponse(
       `Box auth error: ${error} - ${errorDesc || ""}`,
-      { status: 400 }
+      {
+        status: 400,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      }
     );
   }
 
   if (!code) {
-    return NextResponse.text("Missing 'code' from Box OAuth callback.", {
-      status: 400,
-    });
+    return new NextResponse(
+      "Missing 'code' from Box OAuth callback.",
+      {
+        status: 400,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      }
+    );
   }
 
   const clientId = requireEnv("BOX_CLIENT_ID");
@@ -55,11 +62,14 @@ export async function GET(req: NextRequest) {
 
   if (!tokenRes.ok) {
     console.error("[Box] OAuth code exchange failed:", json);
-    return NextResponse.text(
+    return new NextResponse(
       `Failed to exchange Box auth code: ${
         json.error_description || json.error || tokenRes.status
       }`,
-      { status: 500 }
+      {
+        status: 500,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      }
     );
   }
 
@@ -67,15 +77,17 @@ export async function GET(req: NextRequest) {
     await saveBoxTokensFromOAuthResponse(json);
   } catch (err: any) {
     console.error("[Box] Failed to save tokens:", err);
-    return NextResponse.text(
+    return new NextResponse(
       `Box auth succeeded but saving tokens failed: ${String(
         err?.message || err
       )}`,
-      { status: 500 }
+      {
+        status: 500,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      }
     );
   }
 
-  // Simple HTML page to confirm
   const html = `
 <!DOCTYPE html>
 <html>
