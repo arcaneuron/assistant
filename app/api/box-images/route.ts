@@ -1,91 +1,59 @@
+// app/api/box-images/route.ts
+export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from "next/server";
-
-const BOX_API_BASE = "https://api.box.com/2.0";
-const BOX_DEV_TOKEN = process.env.BOX_DEV_TOKEN;
-
-if (!BOX_DEV_TOKEN) {
-  console.warn(
-    "BOX_DEV_TOKEN is not set. /api/box-images will not work until you add it to .env.local."
-  );
-}
-
-type BoxItem = {
-  id: string;
-  type: string;
-  name: string;
-};
+import { getBoxAccessToken } from "../../../lib/boxTokens";
 
 export async function POST(req: NextRequest) {
   try {
-    if (!BOX_DEV_TOKEN) {
-      return NextResponse.json(
-        { error: "BOX_DEV_TOKEN not configured on server" },
-        { status: 500 }
-      );
-    }
-
     const { folderId } = await req.json();
 
     if (!folderId) {
       return NextResponse.json(
-        { error: "folderId is required" },
+        { error: "Missing folderId in request body" },
         { status: 400 }
       );
     }
 
-    const url = `${BOX_API_BASE}/folders/${encodeURIComponent(
-      folderId
-    )}/items?limit=1000`;
+    const accessToken = await getBoxAccessToken();
 
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${BOX_DEV_TOKEN}`,
-      },
-    });
-
-    const raw = await res.text();
+    const res = await fetch(
+      `https://api.box.com/2.0/folders/${encodeURIComponent(
+        folderId
+      )}/items?limit=1000`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
 
     if (!res.ok) {
-      let details: any = raw;
-      try {
-        details = JSON.parse(raw);
-      } catch {
-        // not JSON, leave as string
-      }
-
-      console.error("Box API error:", res.status, details);
-
+      const errJson = await res.json().catch(() => ({}));
+      console.error("[Box] API error:", errJson);
       return NextResponse.json(
         {
-          error: `Box API error ${res.status}`,
-          details,
+          error: "Failed to load images from Box",
+          details: errJson,
         },
-        { status: res.status }
+        { status: 500 }
       );
     }
 
-    const data = JSON.parse(raw);
-    const entries: BoxItem[] = data.entries || [];
+    const data = await res.json();
+    const items = data.entries || [];
 
-    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
-
-    const images = entries
-      .filter((item) => item.type === "file")
-      .filter((item) => {
-        const lower = item.name.toLowerCase();
-        return imageExtensions.some((ext) => lower.endsWith(ext));
-      })
-      .map((item) => ({
-        id: item.id,
-        name: item.name,
-        url: `https://app.box.com/file/${item.id}`,
-      }));
+    const images = items.filter((item: any) => {
+      if (item.type !== "file") return false;
+      const name: string = item.name || "";
+      return name.toLowerCase().match(/\.(png|jpe?g|gif|webp)$/);
+    });
 
     return NextResponse.json({ images });
   } catch (err: any) {
-    console.error("box-images route error:", err);
+    console.error("[Box] /api/box-images error:", err);
     return NextResponse.json(
-      { error: err?.message || "Internal server error" },
+      { error: err.message || "Unexpected error while loading Box images" },
       { status: 500 }
     );
   }
